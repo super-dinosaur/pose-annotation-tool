@@ -1,0 +1,160 @@
+.person-manager {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+.person-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.person-manager-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color, #1a1a1a);
+}
+
+.person-list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-small, 6px);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-light, 0 2px 8px rgba(0, 0, 0, 0.06));
+}
+
+.person-item {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  position: relative;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  min-height: 48px;
+  width: 100%;
+}
+
+.person-item:last-child {
+  border-bottom: none;
+}
+
+.person-item:hover {
+  background-color: var(--background-blue-light, #f1f5f9);
+}
+
+.selected-person {
+  background-color: rgba(58, 123, 213, 0.1);
+  font-weight: 500;
+  border-left: 3px solid var(--primary-color, #3a7bd5);
+}
+
+.person-color {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 12px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.person-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  font-size: 14px;
+  padding-right: 10px;
+  min-width: 80px;
+  max-width: 150px;
+}
+
+.no-person-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  font-size: 14px;
+  color: var(--text-light, #4b5563);
+  background-color: var(--background-gray, #f9fafb);
+  border-radius: var(--radius-small, 6px);
+  border: 1px dashed var(--border-color, #e5e7eb);
+  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.no-person-tip:before {
+  content: '👆';
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.action-icon {
+  font-size: 14px;
+  color: var(--primary-color, #3a7bd5);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  background-color: transparent;
+  flex-shrink: 0;
+}
+
+.action-icon:hover {
+  background-color: rgba(58, 123, 213, 0.1);
+  transform: scale(1.1);
+}
+
+.action-icon.delete {
+  color: #ef4444;
+}
+
+.action-icon.delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.modal-hint {
+  margin-bottom: 12px;
+  color: var(--text-lighter, #6b7280);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.modal-hint:before {
+  content: '💡';
+  margin-right: 8px;
+}
+
+/* 为标签添加样式 */
+.person-item .ant-tag {
+  font-size: 12px;
+  padding: 0 6px;
+  margin-right: 0;
+  border: none;
+  height: 20px;
+  line-height: 20px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #065f46;
+}
+
+/* 修复List.Item的actions样式，确保显示在右侧且不被截断 */
+.person-item .ant-list-item-action {
+  margin-left: 8px;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.person-item .ant-list-item-action > li {
+  padding: 0 2px;
+} 
