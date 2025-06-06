@@ -1,12 +1,28 @@
+/**
+ * Main application component - refactored and simplified
+ */
+
 import React from 'react';
-import VideoAnnotator from './components/VideoAnnotator';
+import { Layout } from 'antd';
+import { AppProvider } from './store';
+import { AnnotationWorkspace } from './components/AnnotationWorkspace';
 import './App.css';
 
+const { Content } = Layout;
+
+/**
+ * Main App component
+ * @returns {JSX.Element}
+ */
 function App() {
   return (
-    <div className="App">
-      <VideoAnnotator />
-    </div>
+    <AppProvider>
+      <Layout className="app-layout">
+        <Content className="app-content">
+          <AnnotationWorkspace />
+        </Content>
+      </Layout>
+    </AppProvider>
   );
 }
 

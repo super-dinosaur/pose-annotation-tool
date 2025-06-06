@@ -1,0 +1,72 @@
+/**
+ * App sidebar styles
+ */
+
+.app-sidebar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+}
+
+.sidebar-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-tabs .ant-tabs-content-holder {
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar-tabs .ant-tabs-tabpane {
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+  padding: 0 16px;
+  background-color: #fafafa;
+}
+
+.sidebar-tabs .ant-tabs-tab {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.sidebar-tabs .ant-tabs-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-shortcuts {
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+  background-color: #fafafa;
+}
+
+.shortcuts-hint {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.shortcuts-hint div {
+  margin-bottom: 2px;
+}
+
+.shortcuts-hint kbd {
+  display: inline-block;
+  padding: 1px 4px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: #666;
+  background-color: #fafafa;
+  border: 1px solid #d9d9d9;
+  border-radius: 2px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  margin-right: 4px;
+}

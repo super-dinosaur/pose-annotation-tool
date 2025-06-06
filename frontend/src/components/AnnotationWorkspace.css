@@ -1,0 +1,56 @@
+/**
+ * Annotation workspace styles
+ */
+
+.annotation-workspace {
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.workspace-header {
+  height: 64px;
+  padding: 0;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+
+.workspace-main {
+  height: calc(100vh - 64px - 80px); /* Header and footer height */
+}
+
+.workspace-sidebar {
+  background-color: #fff;
+  border-right: 1px solid #f0f0f0;
+}
+
+.workspace-content {
+  position: relative;
+  background-color: #f5f5f5;
+  overflow: hidden;
+}
+
+.workspace-footer {
+  height: 80px;
+  padding: 0;
+  background-color: #fff;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .workspace-header {
+    height: auto;
+    min-height: 64px;
+  }
+  
+  .workspace-main {
+    height: calc(100vh - 80px - 80px); /* Adjusted for mobile header */
+  }
+  
+  .workspace-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+}
