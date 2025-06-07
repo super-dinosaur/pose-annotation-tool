@@ -27,7 +27,8 @@ export const useVideoFrame = () => {
 
   // Initialize video element
   useEffect(() => {
-    console.log("Video source changed:", videoSrc);
+    console.log("=== useVideoFrame: Video source changed ===");
+    console.log("New video source:", videoSrc);
 
     if (!videoSrc) {
       console.log("No video source, resetting video info");
@@ -42,10 +43,11 @@ export const useVideoFrame = () => {
       );
       actions.setCurrentFrame(0);
       actions.setFrameImage(null);
+      actions.setVideoLoading(false);
       return;
     }
 
-    console.log("Loading video metadata...");
+    console.log("Starting video loading process...");
     actions.setVideoLoading(true);
 
     // Create a hidden container for the video element
@@ -54,28 +56,42 @@ export const useVideoFrame = () => {
       hiddenVideoContainerRef.current.style.position = "absolute";
       hiddenVideoContainerRef.current.style.left = "-9999px";
       hiddenVideoContainerRef.current.style.top = "-9999px";
+      hiddenVideoContainerRef.current.style.visibility = "hidden";
       document.body.appendChild(hiddenVideoContainerRef.current);
+      console.log("Created hidden video container");
     }
 
     const video = document.createElement("video");
-    // Remove crossOrigin for blob URLs
+    
+    // Configure video element
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    
+    // Only set crossOrigin for non-blob URLs
     if (!videoSrc.startsWith("blob:")) {
       video.crossOrigin = "anonymous";
     }
-    video.preload = "auto"; // Changed from 'metadata' to 'auto'
-    video.muted = true; // Add muted to help with autoplay policies
+    
+    console.log("Video element created and configured");
 
     // Append video to hidden container
     hiddenVideoContainerRef.current.appendChild(video);
+    console.log("Video element appended to container");
 
     // Add a safety timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      console.log("Video loading timeout, forcing loading state to false");
+      console.warn("Video loading timeout reached - stopping loading state");
       actions.setVideoLoading(false);
-    }, 15000); // Increased timeout
+    }, 10000);
 
     // Function to process video metadata
     const processVideoMetadata = () => {
+      console.log("Processing video metadata...");
+      console.log("Video dimensions:", video.videoWidth, "x", video.videoHeight);
+      console.log("Video duration:", video.duration);
+      console.log("Video readyState:", video.readyState);
+      
       const info = {
         width: video.videoWidth,
         height: video.videoHeight,
@@ -83,99 +99,65 @@ export const useVideoFrame = () => {
         frameRate: APP_CONSTANTS.DEFAULT_VIDEO_FRAME_RATE || 30,
       };
 
-      console.log("Processing video info:", info);
-
       // Validate video info
       if (
         info.width === 0 ||
         info.height === 0 ||
         !isFinite(info.duration) ||
-        info.duration === 0
+        info.duration <= 0
       ) {
         console.error("Invalid video metadata:", info);
+        actions.setVideoLoading(false);
         return false;
       }
 
       const frames = calculateTotalFrames(info.duration, info.frameRate);
       console.log("Total frames calculated:", frames);
 
+      // Update video info in state
       actions.setVideoInfo(info, frames);
       actions.setCurrentFrame(0);
 
-      // Extract first frame after a small delay to ensure video is ready
-      setTimeout(() => {
-        console.log("Extracting first frame...");
-        extractFrameFromVideo(video, 0, info.frameRate)
-          .then((frameImage) => {
-            console.log("First frame extracted successfully");
-            actions.setFrameImage(frameImage);
-            actions.setVideoLoading(false);
-          })
-          .catch((error) => {
-            console.error("Frame extraction failed:", error);
-            // Try once more with a delay
-            setTimeout(() => {
-              extractFrameFromVideo(video, 0, info.frameRate)
-                .then((frameImage) => {
-                  console.log("First frame extracted on retry");
-                  actions.setFrameImage(frameImage);
-                  actions.setVideoLoading(false);
-                })
-                .catch((retryError) => {
-                  console.error(
-                    "Frame extraction failed on retry:",
-                    retryError,
-                  );
-                  actions.setVideoLoading(false);
-                });
-            }, 500);
-          });
-      }, 100);
+      // Extract first frame
+      console.log("Extracting first frame...");
+      extractFrameFromVideo(video, 0, info.frameRate)
+        .then((frameImage) => {
+          console.log("First frame extracted successfully");
+          actions.setFrameImage(frameImage);
+          actions.setVideoLoading(false);
+        })
+        .catch((error) => {
+          console.error("Failed to extract first frame:", error);
+          actions.setVideoLoading(false);
+        });
 
       return true;
     };
 
-    // Use loadeddata event which is more reliable
-    video.onloadeddata = () => {
-      console.log("Video data loaded, checking if metadata is ready");
-      if (video.readyState >= 2) {
-        // HAVE_CURRENT_DATA
-        clearTimeout(timeoutId);
-        processVideoMetadata();
-      }
-    };
-
+    // Single event handler for metadata loading
     video.onloadedmetadata = () => {
-      console.log("Video metadata loaded");
-      if (video.videoWidth > 0 && video.videoHeight > 0) {
-        clearTimeout(timeoutId);
+      console.log("Video metadata loaded successfully");
+      clearTimeout(timeoutId);
+      
+      // Small delay to ensure metadata is fully available
+      setTimeout(() => {
         processVideoMetadata();
-      }
-    };
-
-    video.oncanplaythrough = () => {
-      console.log("Video can play through");
-      // Another chance to process if not already done
-      if (!video.videoWidth || !video.videoHeight) {
-        return;
-      }
-      if (state.video.info.width === 0) {
-        clearTimeout(timeoutId);
-        processVideoMetadata();
-      }
+      }, 100);
     };
 
     video.onerror = (error) => {
       clearTimeout(timeoutId);
       actions.setVideoLoading(false);
-      console.error("Failed to load video:", error);
+      console.error("Video loading error:", error);
       console.error("Video error code:", video.error?.code);
       console.error("Video error message:", video.error?.message);
     };
 
-    // Set source and trigger load
+    // Set source and start loading
+    console.log("Setting video source:", videoSrc);
     video.src = videoSrc;
-    video.load(); // Explicitly call load
+    console.log("Starting video load...");
+    video.load();
 
     videoRef.current = video;
 
