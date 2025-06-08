@@ -2,13 +2,12 @@
  * Application header with toolbar
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Space, Button, message, Typography } from "antd";
 import {
   SaveOutlined,
   PlusOutlined,
   PlayCircleOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
 import { VideoUpload } from "../../features/video";
 import { useAppContext } from "../../store";
@@ -25,49 +24,34 @@ export const AppHeader = () => {
   const { state, actions } = useAppContext();
   const { video, annotation, ui } = state;
 
-  // Debug: Log the current video state
-  console.log("Current video state:", {
-    src: video.src,
-    name: video.name,
-    isLoading: video.isLoading,
-    hasFrameImage: !!video.frameImage,
-    totalFrames: video.totalFrames,
-  });
-
   const handleVideoUpload = useCallback(
     (videoSrc, videoName) => {
-      console.log("=== VIDEO UPLOAD CALLBACK STARTED ===");
-      console.log("Video source:", videoSrc);
-      console.log("Video name:", videoName);
+      console.log("====== AppHeader 处理视频上传 ======");
+      console.log("1. 接收到的参数:", { videoSrc, videoName });
 
       if (!videoSrc) {
-        console.error("No video source provided!");
-        message.error("Failed to load video: No source provided");
+        console.error("错误: 没有视频源");
+        message.error("加载视频失败：没有提供源");
         return;
       }
 
-      if (!videoName) {
-        console.warn("No video name provided, using default");
-        videoName = "uploaded_video.mp4";
-      }
-
       try {
-        // Clear previous annotations but keep UI state
+        // 清除之前的标注
+        console.log("2. 重置标注");
         actions.resetAnnotations();
-        console.log("Annotations reset");
 
-        // Set the video source in state
+        // 设置视频源
+        console.log("3. 调用 actions.setVideoSrc");
         actions.setVideoSrc(videoSrc, videoName);
-        console.log("Video source set in state:", videoSrc);
-
-        message.success(`Video "${videoName}" loaded successfully`);
-        console.log("=== VIDEO UPLOAD CALLBACK COMPLETED ===");
+        
+        console.log("4. 视频上传处理完成");
+        message.success(`视频 "${videoName}" 加载成功`);
       } catch (error) {
-        console.error("Error in handleVideoUpload:", error);
-        message.error("Failed to process video upload");
+        console.error("处理视频上传时出错:", error);
+        message.error("处理视频上传失败");
       }
     },
-    [actions],
+    [actions]
   );
 
   const handleSaveAnnotations = useCallback(() => {
@@ -75,7 +59,7 @@ export const AppHeader = () => {
       !annotation.annotations ||
       Object.keys(annotation.annotations).length === 0
     ) {
-      message.warning("No annotations to save");
+      message.warning("没有标注可以保存");
       return;
     }
 
@@ -86,7 +70,7 @@ export const AppHeader = () => {
       video.info,
       filename,
     );
-    message.success("Annotations saved successfully");
+    message.success("标注保存成功");
   }, [annotation.annotations, annotation.persons, video.info, video.name]);
 
   const handleAddPerson = useCallback(() => {
@@ -94,8 +78,7 @@ export const AppHeader = () => {
   }, [actions]);
 
   const handleInference = useCallback(() => {
-    // TODO: Implement inference logic
-    message.info("Inference feature will be implemented");
+    message.info("推理功能将会实现");
   }, []);
 
   const hasAnnotations =
@@ -111,7 +94,7 @@ export const AppHeader = () => {
       </div>
 
       <div className="header-center">
-        <Space size="middle">
+        <Space size="middle" align="center">
           <VideoUpload onVideoUpload={handleVideoUpload} />
 
           <Button

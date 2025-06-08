@@ -2,7 +2,7 @@
  * Custom hook for video frame extraction and management
  */
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import {
   extractFrameFromVideo,
   calculateTotalFrames,
@@ -10,238 +10,214 @@ import {
 import { APP_CONSTANTS } from "../../../constants";
 import { useAppContext } from "../../../store";
 
+// 全局变量，确保只有一个实例在处理视频
+let globalVideoProcessor = null;
+
 /**
  * Hook for managing video frames
  * @returns {Object} Video frame management state and functions
  */
 export const useVideoFrame = () => {
   const { state, actions } = useAppContext();
-  const { video } = state;
-  const videoSrc = video.src;
-
-  console.log("=== useVideoFrame called ===");
-  console.log("Current video source:", videoSrc);
-
+  const videoState = state.video;
+  
   const videoRef = useRef(null);
   const hiddenVideoContainerRef = useRef(null);
+  const instanceId = useRef(Math.random()); // 用于调试的实例ID
 
-  // Initialize video element
+  console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Hook called`);
+
+  // Initialize video element when source changes
   useEffect(() => {
-    console.log("=== useVideoFrame: Video source changed ===");
-    console.log("New video source:", videoSrc);
-
-    if (!videoSrc) {
-      console.log("No video source, resetting video info");
-      actions.setVideoInfo(
-        {
-          width: 0,
-          height: 0,
-          duration: 0,
-          frameRate: APP_CONSTANTS.DEFAULT_VIDEO_FRAME_RATE,
-        },
-        0,
-      );
-      actions.setCurrentFrame(0);
-      actions.setFrameImage(null);
-      actions.setVideoLoading(false);
-      return;
-    }
-
-    console.log("Starting video loading process...");
-    actions.setVideoLoading(true);
-
-    // Create a hidden container for the video element
-    if (!hiddenVideoContainerRef.current) {
-      hiddenVideoContainerRef.current = document.createElement("div");
-      hiddenVideoContainerRef.current.style.position = "absolute";
-      hiddenVideoContainerRef.current.style.left = "-9999px";
-      hiddenVideoContainerRef.current.style.top = "-9999px";
-      hiddenVideoContainerRef.current.style.visibility = "hidden";
-      document.body.appendChild(hiddenVideoContainerRef.current);
-      console.log("Created hidden video container");
-    }
-
-    const video = document.createElement("video");
+    const currentSrc = videoState?.src;
     
-    // Configure video element
-    video.preload = "metadata";
-    video.muted = true;
-    video.playsInline = true;
+    console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Effect triggered`, {
+      currentSrc,
+      hasGlobalProcessor: !!globalVideoProcessor
+    });
     
-    // Only set crossOrigin for non-blob URLs
-    if (!videoSrc.startsWith("blob:")) {
-      video.crossOrigin = "anonymous";
-    }
-    
-    console.log("Video element created and configured");
-
-    // Append video to hidden container
-    hiddenVideoContainerRef.current.appendChild(video);
-    console.log("Video element appended to container");
-
-    // Add a safety timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.warn("Video loading timeout reached - stopping loading state");
-      actions.setVideoLoading(false);
-    }, 10000);
-
-    // Function to process video metadata
-    const processVideoMetadata = () => {
-      console.log("Processing video metadata...");
-      console.log("Video dimensions:", video.videoWidth, "x", video.videoHeight);
-      console.log("Video duration:", video.duration);
-      console.log("Video readyState:", video.readyState);
-      
-      const info = {
-        width: video.videoWidth,
-        height: video.videoHeight,
-        duration: video.duration,
-        frameRate: APP_CONSTANTS.DEFAULT_VIDEO_FRAME_RATE || 30,
-      };
-
-      // Validate video info
-      if (
-        info.width === 0 ||
-        info.height === 0 ||
-        !isFinite(info.duration) ||
-        info.duration <= 0
-      ) {
-        console.error("Invalid video metadata:", info);
-        actions.setVideoLoading(false);
-        return false;
-      }
-
-      const frames = calculateTotalFrames(info.duration, info.frameRate);
-      console.log("Total frames calculated:", frames);
-
-      // Update video info in state
-      actions.setVideoInfo(info, frames);
-      actions.setCurrentFrame(0);
-
-      // Extract first frame
-      console.log("Extracting first frame...");
-      extractFrameFromVideo(video, 0, info.frameRate)
-        .then((frameImage) => {
-          console.log("First frame extracted successfully");
-          actions.setFrameImage(frameImage);
-          actions.setVideoLoading(false);
-        })
-        .catch((error) => {
-          console.error("Failed to extract first frame:", error);
-          actions.setVideoLoading(false);
-        });
-
-      return true;
-    };
-
-    // Single event handler for metadata loading
-    video.onloadedmetadata = () => {
-      console.log("Video metadata loaded successfully");
-      clearTimeout(timeoutId);
-      
-      // Small delay to ensure metadata is fully available
-      setTimeout(() => {
-        processVideoMetadata();
-      }, 100);
-    };
-
-    video.onerror = (error) => {
-      clearTimeout(timeoutId);
-      actions.setVideoLoading(false);
-      console.error("Video loading error:", error);
-      console.error("Video error code:", video.error?.code);
-      console.error("Video error message:", video.error?.message);
-    };
-
-    // Set source and start loading
-    console.log("Setting video source:", videoSrc);
-    video.src = videoSrc;
-    console.log("Starting video load...");
-    video.load();
-
-    videoRef.current = video;
-
-    return () => {
-      clearTimeout(timeoutId);
+    // Cleanup function
+    const cleanup = () => {
+      console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Cleaning up`);
       if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.removeAttribute("src");
         videoRef.current.load();
-        if (
-          hiddenVideoContainerRef.current &&
-          videoRef.current.parentNode === hiddenVideoContainerRef.current
-        ) {
-          hiddenVideoContainerRef.current.removeChild(videoRef.current);
-        }
         videoRef.current = null;
       }
-      if (
-        hiddenVideoContainerRef.current &&
-        hiddenVideoContainerRef.current.parentNode
-      ) {
+      if (hiddenVideoContainerRef.current?.parentNode) {
         document.body.removeChild(hiddenVideoContainerRef.current);
         hiddenVideoContainerRef.current = null;
       }
+      // 清除全局处理器
+      if (globalVideoProcessor === instanceId.current) {
+        globalVideoProcessor = null;
+      }
     };
-  }, [videoSrc, actions]);
+    
+    if (!currentSrc) {
+      console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] No source, cleaning up`);
+      cleanup();
+      return;
+    }
+
+    // 检查是否已经有其他实例在处理
+    if (globalVideoProcessor && globalVideoProcessor !== instanceId.current) {
+      console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Another instance is processing, skipping`);
+      return;
+    }
+
+    // 标记当前实例为处理器
+    globalVideoProcessor = instanceId.current;
+    console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Starting video processing`);
+    
+    actions.setVideoLoading(true);
+
+    // Create container if needed - 检查是否已存在
+    let container = document.getElementById('video-hidden-container');
+    if (!container) {
+      container = document.createElement("div");
+      container.id = 'video-hidden-container';
+      container.style.display = "none";
+      document.body.appendChild(container);
+      console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Created container`);
+    }
+    hiddenVideoContainerRef.current = container;
+
+    // Create video element
+    const videoElement = document.createElement("video");
+    videoElement.preload = "metadata";
+    videoElement.muted = true;
+    videoElement.playsInline = true;
+    
+    if (!currentSrc.startsWith("blob:")) {
+      videoElement.crossOrigin = "anonymous";
+    }
+
+    // Add to container
+    container.appendChild(videoElement);
+    videoRef.current = videoElement;
+
+    // Set up event handlers
+    const handleLoadedMetadata = async () => {
+      console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Metadata loaded`, {
+        width: videoElement.videoWidth,
+        height: videoElement.videoHeight,
+        duration: videoElement.duration
+      });
+      
+      const info = {
+        width: videoElement.videoWidth,
+        height: videoElement.videoHeight,
+        duration: videoElement.duration,
+        frameRate: APP_CONSTANTS.DEFAULT_VIDEO_FRAME_RATE || 30,
+      };
+
+      // Validate
+      if (!info.width || !info.height || !info.duration) {
+        console.error(`[useVideoFrame-${instanceId.current.toFixed(3)}] Invalid metadata`);
+        actions.setVideoLoading(false);
+        return;
+      }
+
+      const totalFrames = calculateTotalFrames(info.duration, info.frameRate);
+      
+      // Update state
+      actions.setVideoInfo(info, totalFrames);
+      actions.setCurrentFrame(0);
+
+      // Extract first frame
+      try {
+        const frameImage = await extractFrameFromVideo(videoElement, 0, info.frameRate);
+        console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] First frame extracted`);
+        actions.setFrameImage(frameImage);
+      } catch (error) {
+        console.error(`[useVideoFrame-${instanceId.current.toFixed(3)}] Frame extraction failed:`, error);
+      }
+      
+      actions.setVideoLoading(false);
+    };
+
+    const handleError = (e) => {
+      console.error(`[useVideoFrame-${instanceId.current.toFixed(3)}] Video error:`, e);
+      actions.setVideoLoading(false);
+    };
+
+    // Attach event listeners
+    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoElement.addEventListener('error', handleError);
+    
+    // Load video
+    console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Loading video:`, currentSrc);
+    videoElement.src = currentSrc;
+    videoElement.load();
+
+    // Cleanup on unmount
+    return () => {
+      console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Effect cleanup`);
+      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      videoElement.removeEventListener('error', handleError);
+      cleanup();
+    };
+  }, [videoState?.src]); // 移除actions依赖，避免无限循环
 
   // Extract frame when current frame changes
   useEffect(() => {
-    if (!videoRef.current || !videoSrc || video.totalFrames === 0) return;
+    const currentFrame = videoState?.currentFrame;
+    const totalFrames = videoState?.totalFrames;
+    const frameRate = videoState?.info?.frameRate;
+    const src = videoState?.src;
+    
+    if (!videoRef.current || !src || !totalFrames) {
+      return;
+    }
 
-    console.log("Extracting frame for index:", video.currentFrame);
-    actions.setVideoLoading(true);
-
-    extractFrameFromVideo(
-      videoRef.current,
-      video.currentFrame,
-      video.info.frameRate,
-    )
+    extractFrameFromVideo(videoRef.current, currentFrame, frameRate)
       .then((image) => {
-        console.log("Frame extracted for index:", video.currentFrame);
         actions.setFrameImage(image);
-        actions.setVideoLoading(false);
       })
       .catch((error) => {
-        console.error("Failed to extract frame:", error);
-        actions.setVideoLoading(false);
+        console.error("Frame extraction failed:", error);
       });
   }, [
-    video.currentFrame,
-    videoSrc,
-    video.info.frameRate,
-    video.totalFrames,
-    actions,
+    videoState?.currentFrame, 
+    videoState?.totalFrames,
+    videoState?.info?.frameRate
   ]);
 
   // Navigation functions
   const nextFrame = useCallback(() => {
-    const newFrame = Math.min(video.currentFrame + 1, video.totalFrames - 1);
-    actions.setCurrentFrame(newFrame);
-  }, [video.currentFrame, video.totalFrames, actions]);
+    const current = videoState?.currentFrame || 0;
+    const total = videoState?.totalFrames || 0;
+    
+    if (total > 0 && current < total - 1) {
+      actions.setCurrentFrame(current + 1);
+    }
+  }, [videoState, actions]);
 
   const prevFrame = useCallback(() => {
-    const newFrame = Math.max(video.currentFrame - 1, 0);
-    actions.setCurrentFrame(newFrame);
-  }, [video.currentFrame, actions]);
+    const current = videoState?.currentFrame || 0;
+    
+    if (current > 0) {
+      actions.setCurrentFrame(current - 1);
+    }
+  }, [videoState, actions]);
 
-  const goToFrame = useCallback(
-    (frameIndex) => {
-      const clampedFrame = Math.max(
-        0,
-        Math.min(frameIndex, video.totalFrames - 1),
-      );
-      actions.setCurrentFrame(clampedFrame);
-    },
-    [video.totalFrames, actions],
-  );
+  const goToFrame = useCallback((frameIndex) => {
+    const total = videoState?.totalFrames || 0;
+    
+    if (total > 0) {
+      const clamped = Math.max(0, Math.min(frameIndex, total - 1));
+      actions.setCurrentFrame(clamped);
+    }
+  }, [videoState, actions]);
 
   return {
-    videoInfo: video.info,
-    currentFrame: video.currentFrame,
-    totalFrames: video.totalFrames,
-    frameImage: video.frameImage,
-    isLoading: video.isLoading,
+    videoInfo: videoState?.info || { width: 0, height: 0, duration: 0, frameRate: 30 },
+    currentFrame: videoState?.currentFrame || 0,
+    totalFrames: videoState?.totalFrames || 0,
+    frameImage: videoState?.frameImage || null,
+    isLoading: videoState?.isLoading || false,
     nextFrame,
     prevFrame,
     goToFrame,

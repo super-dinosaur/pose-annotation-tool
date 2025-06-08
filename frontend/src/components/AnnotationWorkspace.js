@@ -3,17 +3,17 @@
  * This replaces the monolithic VideoAnnotator component
  */
 
-import React from 'react';
-import { Layout } from 'antd';
-import { AppHeader } from './common/AppHeader';
-import { AppSidebar } from './common/AppSidebar';
-import { AppFooter } from './common/AppFooter';
-import { AnnotationCanvas } from '../features/annotation/components/AnnotationCanvas';
-import { LoadingOverlay } from './common/LoadingOverlay';
-import { AddPersonModal } from '../features/person/components/AddPersonModal';
-import { DebugInfo } from './common/DebugInfo';
-import { useAppContext } from '../store';
-import './AnnotationWorkspace.css';
+import React from "react";
+import { Layout } from "antd";
+import { AppHeader } from "./common/AppHeader";
+import { AppSidebar } from "./common/AppSidebar";
+import { AppFooter } from "./common/AppFooter";
+import { AnnotationCanvas } from "../features/annotation/components/AnnotationCanvas";
+import { LoadingOverlay } from "./common/LoadingOverlay";
+import { AddPersonModal } from "../features/person/components/AddPersonModal";
+import { DebugInfo } from "./common/DebugInfo";
+import { useAppContext } from "../store";
+import "./AnnotationWorkspace.css";
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -24,7 +24,7 @@ const { Header, Sider, Content, Footer } = Layout;
 export const AnnotationWorkspace = () => {
   const { state } = useAppContext();
   const { video, ui } = state;
-  
+
   return (
     <Layout className="annotation-workspace">
       <Header className="workspace-header">
@@ -32,9 +32,9 @@ export const AnnotationWorkspace = () => {
       </Header>
 
       <Layout className="workspace-main">
-        <Sider 
-          width={280} 
-          className="workspace-sidebar" 
+        <Sider
+          width={280}
+          className="workspace-sidebar"
           theme="light"
           collapsible={false}
         >
@@ -43,6 +43,7 @@ export const AnnotationWorkspace = () => {
 
         <Content className="workspace-content">
           <AnnotationCanvas />
+          debugger;
           {video.isLoading && <LoadingOverlay />}
         </Content>
       </Layout>
@@ -52,7 +53,7 @@ export const AnnotationWorkspace = () => {
       </Footer>
 
       <AddPersonModal />
-      <DebugInfo />
+      {/* <DebugInfo /> */}
     </Layout>
   );
 };

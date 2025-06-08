@@ -26,6 +26,17 @@
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
+}
+
+/* Ensure all buttons in header are aligned */
+.header-center .ant-space {
+  align-items: center;
+}
+
+.header-center .ant-upload {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .header-right {

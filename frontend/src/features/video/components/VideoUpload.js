@@ -1,8 +1,8 @@
 /**
- * Video upload component with extensive debugging
+ * Video upload component
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Upload, Button, message } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { validateVideoFile, createVideoUrl } from "../services/videoService";
@@ -15,58 +15,53 @@ import { validateVideoFile, createVideoUrl } from "../services/videoService";
  * @returns {JSX.Element}
  */
 export const VideoUpload = ({ onVideoUpload, disabled = false }) => {
-  // Debug: Log when component mounts
-  React.useEffect(() => {
-    console.log("VideoUpload component mounted");
-    console.log("onVideoUpload function provided:", !!onVideoUpload);
-    console.log("disabled:", disabled);
-  }, []);
-
+  
   const handleFileSelect = useCallback(
     (file) => {
-      console.log("=== FILE SELECTED ===");
-      console.log("File:", file);
-      console.log("File name:", file.name);
-      console.log("File type:", file.type);
-      console.log("File size:", file.size, "bytes");
-
-      // Validate file
+      console.log("====== 视频上传流程开始 ======");
+      console.log("1. 文件信息:", {
+        name: file.name,
+        type: file.type,
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`
+      });
+      
+      // 验证文件
       const isValid = validateVideoFile(file);
-      console.log("Is valid video file:", isValid);
+      console.log("2. 文件验证结果:", isValid);
 
       if (!isValid) {
-        message.error("Please select a valid video file!");
+        message.error("请选择有效的视频文件！");
         return false;
       }
 
-      // Check file size
+      // 检查文件大小
       const maxSize = 500 * 1024 * 1024; // 500MB
       if (file.size > maxSize) {
-        message.error("Video file is too large! Maximum size is 500MB.");
+        console.log("文件太大:", file.size);
+        message.error("视频文件太大！最大500MB");
         return false;
       }
 
-      // Process the file immediately
+      // 处理文件
       try {
-        console.log("Creating video URL...");
         const videoUrl = createVideoUrl(file);
-        console.log("Video URL created successfully:", videoUrl);
+        console.log("3. 创建的视频URL:", videoUrl);
 
         if (onVideoUpload) {
-          console.log("Calling onVideoUpload...");
+          console.log("4. 调用 onVideoUpload 回调");
           onVideoUpload(videoUrl, file.name);
+          console.log("5. 回调执行完成");
         } else {
-          console.error("onVideoUpload callback is not defined!");
+          console.error("错误: onVideoUpload 回调未定义！");
         }
 
-        message.success(`${file.name} loaded successfully`);
+        message.success(`${file.name} 加载成功`);
       } catch (error) {
-        console.error("Error processing video:", error);
-        message.error("Failed to process video file");
+        console.error("处理视频时出错:", error);
+        message.error("处理视频文件失败");
       }
 
-      // Return false to prevent default upload behavior
-      return false;
+      return false; // 阻止默认上传行为
     },
     [onVideoUpload],
   );
@@ -80,21 +75,15 @@ export const VideoUpload = ({ onVideoUpload, disabled = false }) => {
   };
 
   return (
-    <div>
-      <Upload {...uploadProps}>
-        <Button
-          icon={<UploadOutlined />}
-          type="primary"
-          disabled={disabled}
-          onClick={() => console.log("Upload button clicked")}
-        >
-          Upload Video
-        </Button>
-      </Upload>
-      <div style={{ marginTop: "10px", fontSize: "12px", color: "#666" }}>
-        Debug: Component is {disabled ? "disabled" : "enabled"}
-      </div>
-    </div>
+    <Upload {...uploadProps} style={{ display: 'inline-block' }}>
+      <Button
+        icon={<UploadOutlined />}
+        type="primary"
+        disabled={disabled}
+      >
+        Upload Video
+      </Button>
+    </Upload>
   );
 };
 

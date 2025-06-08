@@ -79,7 +79,8 @@ const appReducer = (state, action) => {
   switch (action.type) {
     // Video actions
     case ActionTypes.SET_VIDEO_SRC:
-      return {
+      console.log('[Reducer] SET_VIDEO_SRC:', action.payload);
+      const newState = {
         ...state,
         video: {
           ...state.video,
@@ -87,6 +88,7 @@ const appReducer = (state, action) => {
           name: action.payload.name,
         },
       };
+      return newState;
       
     case ActionTypes.SET_VIDEO_INFO:
       return {
@@ -311,6 +313,7 @@ export const AppProvider = ({ children }) => {
   const actions = {
     // Video actions
     setVideoSrc: useCallback((src, name) => {
+      console.log('[AppContext] setVideoSrc called:', { src, name });
       dispatch({ type: ActionTypes.SET_VIDEO_SRC, payload: { src, name } });
     }, []),
     
