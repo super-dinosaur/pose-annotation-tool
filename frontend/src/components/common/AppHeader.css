@@ -25,13 +25,30 @@
 .header-center {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start; /* Align content to the left */
+  align-items: center;
+  padding: 0 40px; /* Add padding to control the spread area */
+}
+
+/* New button container with even distribution */
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* Equal spacing between all buttons - adjust as needed */
+  width: auto;
+  justify-content: flex-start; /* Align to the left */
+}
+
+/* Make the Space component stretch to fill available space */
+.header-center .ant-space {
+  width: 100%;
+  justify-content: space-between; /* This distributes items evenly */
   align-items: center;
 }
 
-/* Ensure all buttons in header are aligned */
-.header-center .ant-space {
-  align-items: center;
+/* Ensure consistent button widths for better visual balance */
+.header-center .ant-btn {
+  min-width: 140px; /* Adjust this value as needed */
 }
 
 .header-center .ant-upload {
@@ -43,6 +60,17 @@
   flex: 0 0 auto;
   min-width: 200px;
   text-align: right;
+}
+
+/* Style for the info section in header-right */
+.header-info {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.header-info-item {
+  margin-left: 8px;
 }
 
 /* Responsive adjustments */

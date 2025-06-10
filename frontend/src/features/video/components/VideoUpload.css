@@ -1,0 +1,8 @@
+.video-upload-wrapper {
+  margin-left: -20px;
+}
+
+/* Alternative: target the Ant Design button directly */
+.video-upload-wrapper .ant-btn-primary {
+  /* Add any additional styling here */
+}

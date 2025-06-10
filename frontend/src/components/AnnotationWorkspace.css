@@ -16,7 +16,7 @@
 }
 
 .workspace-main {
-  height: calc(100vh - 64px - 80px); /* Header and footer height */
+  height: calc(100vh - 64px - 50px); /* Header height (64px) and footer height (50px) */
 }
 
 .workspace-sidebar {
@@ -31,7 +31,7 @@
 }
 
 .workspace-footer {
-  height: 80px;
+  height: 50px;    /* Reduced from 80px to 50px */
   padding: 0;
   background-color: #fff;
   border-top: 1px solid #f0f0f0;
@@ -45,7 +45,7 @@
   }
   
   .workspace-main {
-    height: calc(100vh - 80px - 80px); /* Adjusted for mobile header */
+    height: calc(100vh - 80px - 50px); /* Adjusted for mobile header and smaller footer */
   }
   
   .workspace-sidebar {

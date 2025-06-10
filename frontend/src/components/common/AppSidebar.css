@@ -27,19 +27,26 @@
 
 .sidebar-tabs .ant-tabs-nav {
   margin-bottom: 0;
-  padding: 0 16px;
+  padding: 0 12px;              /* Reduced side padding from 16px to 12px */
   background-color: #fafafa;
+  justify-content: flex-start;  /* Align tabs to the left */
 }
 
 .sidebar-tabs .ant-tabs-tab {
-  padding: 8px 12px;
+  padding: 6px 10px;            /* Reduced padding for less crowding */
   font-size: 13px;
+  margin-right: 4px;            /* Add small gap between tabs */
 }
 
 .sidebar-tabs .ant-tabs-tab-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;                     /* Reduced gap between icon and text */
+}
+
+/* Move keypoints tab slightly left when needed */
+.sidebar-tabs .ant-tabs-tab[data-node-key="keypoints"] {
+  margin-left: 5px;            /* Move keypoints tab 2px to the left */
 }
 
 .sidebar-shortcuts {
@@ -69,4 +76,20 @@
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   margin-right: 4px;
+}
+
+/* Responsive adjustments for smaller sidebar */
+@media (max-width: 1200px) {
+  .sidebar-tabs .ant-tabs-tab {
+    padding: 5px 8px;           /* Even smaller padding on smaller screens */
+    font-size: 12px;
+  }
+  
+  .sidebar-tabs .ant-tabs-tab-btn {
+    gap: 3px;                   /* Smaller gap on smaller screens */
+  }
+
+  .sidebar-tabs .ant-tabs-nav {
+    padding: 0 8px;             /* Even less padding on small screens */
+  }
 }

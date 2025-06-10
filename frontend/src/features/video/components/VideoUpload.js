@@ -6,6 +6,7 @@ import React, { useCallback, useEffect } from "react";
 import { Upload, Button, message } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { validateVideoFile, createVideoUrl } from "../services/videoService";
+import "./VideoUpload.css";
 
 /**
  * VideoUpload component
@@ -75,7 +76,7 @@ export const VideoUpload = ({ onVideoUpload, disabled = false }) => {
   };
 
   return (
-    <Upload {...uploadProps} style={{ display: 'inline-block' }}>
+    <Upload {...uploadProps} style={{ display: 'inline-block' }} className="video-upload-wrapper">
       <Button
         icon={<UploadOutlined />}
         type="primary"

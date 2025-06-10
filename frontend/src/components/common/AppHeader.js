@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Space, Button, message, Typography } from "antd";
+import { Button, message, Typography } from "antd";
 import {
   SaveOutlined,
   PlusOutlined,
@@ -12,6 +12,7 @@ import {
 import { VideoUpload } from "../../features/video";
 import { useAppContext } from "../../store";
 import { exportAnnotationsToJson } from "../../utils/export";
+import { runInference, checkBackendHealth } from "../../services/inferenceService";
 import "./AppHeader.css";
 
 const { Text } = Typography;
@@ -43,7 +44,7 @@ export const AppHeader = () => {
         // 设置视频源
         console.log("3. 调用 actions.setVideoSrc");
         actions.setVideoSrc(videoSrc, videoName);
-        
+
         console.log("4. 视频上传处理完成");
         message.success(`视频 "${videoName}" 加载成功`);
       } catch (error) {
@@ -51,7 +52,7 @@ export const AppHeader = () => {
         message.error("处理视频上传失败");
       }
     },
-    [actions]
+    [actions],
   );
 
   const handleSaveAnnotations = useCallback(() => {
@@ -77,9 +78,52 @@ export const AppHeader = () => {
     actions.setAddPersonModal(true);
   }, [actions]);
 
-  const handleInference = useCallback(() => {
-    message.info("推理功能将会实现");
-  }, []);
+  const handleInference = useCallback(async () => {
+    if (!video.src) {
+      message.error("请先加载视频");
+      return;
+    }
+
+    try {
+      // Set loading state
+      actions.setInferencing(true);
+      
+      // Check if backend is running
+      const isBackendHealthy = await checkBackendHealth();
+      if (!isBackendHealthy) {
+        throw new Error("Backend server is not running. Please start the backend server.");
+      }
+      
+      message.info("开始推理...");
+      
+      // Run inference
+      const result = await runInference(
+        video.src, // This might need to be a file path instead of blob URL
+        video.currentFrame,
+        annotation.annotations
+      );
+      
+      console.log("Inference result:", result);
+      
+      // Process the inference results
+      if (result.predictions && result.predictions.length > 0) {
+        // TODO: Add logic to update annotations with inference results
+        // For example:
+        // actions.updateAnnotationsFromInference(result.predictions);
+        
+        message.success(`推理完成！检测到 ${result.predictions.length} 个人`);
+      } else {
+        message.warning("推理完成，但未检测到任何人");
+      }
+      
+    } catch (error) {
+      console.error("Inference error:", error);
+      message.error(`推理失败: ${error.message}`);
+    } finally {
+      // Clear loading state
+      actions.setInferencing(false);
+    }
+  }, [video.src, video.currentFrame, annotation.annotations, actions]);
 
   const hasAnnotations =
     annotation.annotations && Object.keys(annotation.annotations).length > 0;
@@ -94,7 +138,7 @@ export const AppHeader = () => {
       </div>
 
       <div className="header-center">
-        <Space size="middle" align="center">
+        <div className="header-buttons">
           <VideoUpload onVideoUpload={handleVideoUpload} />
 
           <Button
@@ -124,17 +168,17 @@ export const AppHeader = () => {
           >
             {ui.isInferencing ? "Inferencing..." : "Inference Next Frame"}
           </Button>
-        </Space>
+        </div>
       </div>
 
       <div className="header-right">
         {hasVideo && (
-          <Space>
+          <div className="header-info">
             <Text type="secondary">
               Frame: {video.currentFrame + 1} / {video.totalFrames}
             </Text>
             {annotation.selectedPersonId && (
-              <Text type="secondary">
+              <Text type="secondary" className="header-info-item">
                 Current:{" "}
                 {
                   annotation.persons.find(
@@ -143,7 +187,7 @@ export const AppHeader = () => {
                 }
               </Text>
             )}
-          </Space>
+          </div>
         )}
       </div>
     </div>
