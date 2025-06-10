@@ -3,15 +3,17 @@
  */
 
 import { calculateTotalFrames as utilCalculateTotalFrames } from "../../../utils/video";
+import { detectBlackBorders } from "../../../utils/videoCrop";
 
 /**
  * Extract frame from video element
  * @param {HTMLVideoElement} videoElement - Video element
  * @param {number} frameIndex - Frame index
  * @param {number} frameRate - Frame rate
+ * @param {Object|string} cropBounds - Crop bounds {x, y, width, height} or 'auto' for auto-detection
  * @returns {Promise<string>} Frame image data URL
  */
-export const extractFrameFromVideo = (videoElement, frameIndex, frameRate) => {
+export const extractFrameFromVideo = (videoElement, frameIndex, frameRate, cropBounds = null) => {
   return new Promise((resolve, reject) => {
     console.log("extractFrameFromVideo called:", { frameIndex, frameRate });
 
@@ -66,8 +68,50 @@ export const extractFrameFromVideo = (videoElement, frameIndex, frameRate) => {
         // Draw the video frame
         ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
+        // Handle cropping
+        let finalCanvas = canvas;
+        let actualCropBounds = null;
+        
+        if (cropBounds === 'auto') {
+          // Auto-detect black borders
+          const detected = detectBlackBorders(canvas);
+          console.log('Auto-detected crop bounds:', detected);
+          
+          // Only crop if significant borders detected (more than 5% of dimension)
+          const widthReduction = (canvas.width - detected.width) / canvas.width;
+          const heightReduction = (canvas.height - detected.height) / canvas.height;
+          
+          if (widthReduction > 0.05 || heightReduction > 0.05) {
+            actualCropBounds = detected;
+          }
+        } else if (cropBounds && typeof cropBounds === 'object') {
+          actualCropBounds = cropBounds;
+        }
+        
+        // Apply cropping if needed
+        if (actualCropBounds) {
+          const croppedCanvas = document.createElement('canvas');
+          croppedCanvas.width = actualCropBounds.width;
+          croppedCanvas.height = actualCropBounds.height;
+          const croppedCtx = croppedCanvas.getContext('2d');
+          
+          croppedCtx.drawImage(
+            canvas,
+            actualCropBounds.x,
+            actualCropBounds.y,
+            actualCropBounds.width,
+            actualCropBounds.height,
+            0,
+            0,
+            actualCropBounds.width,
+            actualCropBounds.height
+          );
+          
+          finalCanvas = croppedCanvas;
+        }
+
         // Convert to data URL
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        const dataUrl = finalCanvas.toDataURL("image/jpeg", 0.8);
 
         if (!dataUrl || dataUrl === "data:,") {
           throw new Error("Failed to generate data URL");

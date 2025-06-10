@@ -2,7 +2,7 @@
  * API service for inference operations
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 /**
  * Run inference on the current frame
@@ -11,29 +11,33 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
  * @param {Object} annotations - Current annotations (optional)
  * @returns {Promise<Object>} Inference results
  */
-export const runInference = async (videoPath, frameNumber, annotations = null) => {
+export const runInference = async (
+  videoPath,
+  frameNumber,
+  annotations = null,
+) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/inference`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         videoPath,
         frameNumber,
-        annotations
-      })
+        annotations,
+      }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Inference failed');
+      throw new Error(error.error || "Inference failed");
     }
 
     const result = await response.json();
     return result.data;
   } catch (error) {
-    console.error('Inference API error:', error);
+    console.error("Inference API error:", error);
     throw error;
   }
 };

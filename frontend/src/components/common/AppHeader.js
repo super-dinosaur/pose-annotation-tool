@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, message, Typography } from "antd";
+import { Button, message, Typography, Popover, Slider, Switch } from "antd";
 import {
   SaveOutlined,
   PlusOutlined,
@@ -12,7 +12,10 @@ import {
 import { VideoUpload } from "../../features/video";
 import { useAppContext } from "../../store";
 import { exportAnnotationsToJson } from "../../utils/export";
-import { runInference, checkBackendHealth } from "../../services/inferenceService";
+import {
+  runInference,
+  checkBackendHealth,
+} from "../../services/inferenceService";
 import "./AppHeader.css";
 
 const { Text } = Typography;
@@ -87,35 +90,36 @@ export const AppHeader = () => {
     try {
       // Set loading state
       actions.setInferencing(true);
-      
+
       // Check if backend is running
       const isBackendHealthy = await checkBackendHealth();
       if (!isBackendHealthy) {
-        throw new Error("Backend server is not running. Please start the backend server.");
+        throw new Error(
+          "Backend server is not running. Please start the backend server.",
+        );
       }
-      
+
       message.info("开始推理...");
-      
+      console.log(video.src);
       // Run inference
       const result = await runInference(
         video.src, // This might need to be a file path instead of blob URL
         video.currentFrame,
-        annotation.annotations
+        annotation.annotations,
       );
-      
+
       console.log("Inference result:", result);
-      
+
       // Process the inference results
       if (result.predictions && result.predictions.length > 0) {
         // TODO: Add logic to update annotations with inference results
         // For example:
         // actions.updateAnnotationsFromInference(result.predictions);
-        
+
         message.success(`推理完成！检测到 ${result.predictions.length} 个人`);
       } else {
         message.warning("推理完成，但未检测到任何人");
       }
-      
     } catch (error) {
       console.error("Inference error:", error);
       message.error(`推理失败: ${error.message}`);

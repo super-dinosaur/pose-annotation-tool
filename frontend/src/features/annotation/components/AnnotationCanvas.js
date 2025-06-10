@@ -31,6 +31,7 @@ import "./AnnotationCanvas.css";
 export const AnnotationCanvas = () => {
   const { state, actions } = useAppContext();
   const { video, annotation } = state;
+  const cropBounds = video.cropBounds && typeof video.cropBounds === 'object' ? video.cropBounds : null;
 
   // 移除 useVideoFrame 的调用，因为视频处理应该在一个地方进行
   // const { frameImage, isLoading } = useVideoFrame();
@@ -44,14 +45,16 @@ export const AnnotationCanvas = () => {
       return { canvasWidth: 800, canvasHeight: 600, scale: 1 };
     }
 
-    const containerWidth = stageSize.width - 40; // Padding
-    const containerHeight = stageSize.height - 40;
+    const containerWidth = stageSize.width;
+    const containerHeight = stageSize.height;
 
+    // Use 'fill' mode to ensure video fills the container
     const calculatedScale = calculateScaleFactor(
       video.info.width,
       video.info.height,
       containerWidth,
       containerHeight,
+      'fill' // Changed from default 'fit' to 'fill'
     );
 
     return {
@@ -121,16 +124,39 @@ export const AnnotationCanvas = () => {
       const stage = e.target.getStage();
       const pointerPosition = stage.getPointerPosition();
 
+      // Calculate the actual scale factors for width and height
+      const videoWidth = video.info.width;
+      const videoHeight = video.info.height;
+      const scaleX = videoWidth / stageSize.width;
+      const scaleY = videoHeight / stageSize.height;
+
       // Convert screen coordinates to image coordinates
-      const imageX = pointerPosition.x / scale;
-      const imageY = pointerPosition.y / scale;
+      const imageX = pointerPosition.x * scaleX;
+      const imageY = pointerPosition.y * scaleY;
+      
+      // If cropping is applied, adjust coordinates to original video space
+      let finalX = imageX;
+      let finalY = imageY;
+      
+      if (cropBounds) {
+        finalX = imageX + cropBounds.x;
+        finalY = imageY + cropBounds.y;
+      }
+      
+      // Check if click is within image bounds
+      const videoOriginalWidth = video.info.originalWidth || video.info.width;
+      const videoOriginalHeight = video.info.originalHeight || video.info.height;
+      
+      if (finalX < 0 || finalX > videoOriginalWidth || finalY < 0 || finalY > videoOriginalHeight) {
+        return; // Click is outside the image
+      }
 
       // Add annotation
       actions.addAnnotation(
         video.currentFrame,
         annotation.selectedPersonId,
         annotation.selectedKeypoint.id,
-        { x: imageX, y: imageY },
+        { x: finalX, y: finalY },
       );
 
       // Auto-select next keypoint
@@ -144,16 +170,26 @@ export const AnnotationCanvas = () => {
     [
       annotation.selectedPersonId,
       annotation.selectedKeypoint,
-      scale,
       video.currentFrame,
+      video.info.width,
+      video.info.height,
+      video.info.originalWidth,
+      video.info.originalHeight,
+      stageSize,
+      cropBounds,
       actions,
     ],
   );
 
   // Render keypoints for all persons
   const renderKeypoints = useCallback(() => {
-    //stop in line 203
     const elements = [];
+    
+    // Calculate scale factors for positioning
+    const videoWidth = video.info.width || 1;
+    const videoHeight = video.info.height || 1;
+    const scaleX = stageSize.width / videoWidth;
+    const scaleY = stageSize.height / videoHeight;
 
     annotation.persons.forEach((person) => {
       const personAnnotations = currentFrameAnnotations[person.id] || {};
@@ -166,12 +202,25 @@ export const AnnotationCanvas = () => {
         const isSelected =
           annotation.selectedPersonId === person.id &&
           annotation.selectedKeypoint?.id === parseInt(keypointId);
+          
+        // Adjust position if cropping is applied
+        let adjustedX = position.x;
+        let adjustedY = position.y;
+        
+        if (cropBounds) {
+          adjustedX = position.x - cropBounds.x;
+          adjustedY = position.y - cropBounds.y;
+        }
+
+        // Scale to stage coordinates
+        const stageX = adjustedX * scaleX;
+        const stageY = adjustedY * scaleY;
 
         elements.push(
           <Circle
             key={`${person.id}-${keypointId}`}
-            x={position.x * scale}
-            y={position.y * scale}
+            x={stageX}
+            y={stageY}
             radius={VISUAL_CONSTANTS.KEYPOINT_RADIUS}
             fill={keypoint.color}
             stroke={VISUAL_CONSTANTS.KEYPOINT_STROKE}
@@ -186,8 +235,8 @@ export const AnnotationCanvas = () => {
         elements.push(
           <Text
             key={`label-${person.id}-${keypointId}`}
-            x={position.x * scale + 10}
-            y={position.y * scale - 10}
+            x={stageX + 10}
+            y={stageY - 10}
             text={keypoint.name}
             fontSize={10}
             fill={keypoint.color}
@@ -202,14 +251,28 @@ export const AnnotationCanvas = () => {
         const endPos = personAnnotations[endId];
 
         if (startPos && endPos) {
+          // Adjust positions if cropping is applied
+          let adjustedStartX = startPos.x;
+          let adjustedStartY = startPos.y;
+          let adjustedEndX = endPos.x;
+          let adjustedEndY = endPos.y;
+          
+          if (cropBounds) {
+            adjustedStartX = startPos.x - cropBounds.x;
+            adjustedStartY = startPos.y - cropBounds.y;
+            adjustedEndX = endPos.x - cropBounds.x;
+            adjustedEndY = endPos.y - cropBounds.y;
+          }
+          
+          // Scale to stage coordinates
           elements.push(
             <Line
               key={`skeleton-${person.id}-${index}`}
               points={[
-                startPos.x * scale,
-                startPos.y * scale,
-                endPos.x * scale,
-                endPos.y * scale,
+                adjustedStartX * scaleX,
+                adjustedStartY * scaleY,
+                adjustedEndX * scaleX,
+                adjustedEndY * scaleY,
               ]}
               stroke={person.color}
               strokeWidth={VISUAL_CONSTANTS.SKELETON_LINE_WIDTH}
@@ -226,7 +289,10 @@ export const AnnotationCanvas = () => {
     currentFrameAnnotations,
     annotation.selectedPersonId,
     annotation.selectedKeypoint,
-    scale,
+    stageSize,
+    video.info.width,
+    video.info.height,
+    cropBounds,
   ]);
 
   //start return part
@@ -255,10 +321,10 @@ export const AnnotationCanvas = () => {
           {image && (
             <KonvaImage
               image={image}
-              width={canvasWidth}
-              height={canvasHeight}
-              x={0}
-              y={0}
+              width={stageSize.width}  // Fill entire stage width
+              height={stageSize.height} // Fill entire stage height
+              x={0} // Start from left edge
+              y={0} // Start from top edge
             />
           )}
           {renderKeypoints()}

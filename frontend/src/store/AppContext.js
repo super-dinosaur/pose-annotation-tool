@@ -20,6 +20,7 @@ const initialState = {
     frameImage: null,
     isLoading: false,
     scale: 1,
+    cropBounds: null, // { x, y, width, height } for cropping black borders
   },
   
   // Annotation state
@@ -51,6 +52,7 @@ const ActionTypes = {
   SET_FRAME_IMAGE: 'SET_FRAME_IMAGE',
   SET_VIDEO_LOADING: 'SET_VIDEO_LOADING',
   SET_VIDEO_SCALE: 'SET_VIDEO_SCALE',
+  SET_CROP_BOUNDS: 'SET_CROP_BOUNDS',
   
   // Annotation actions
   ADD_ANNOTATION: 'ADD_ANNOTATION',
@@ -133,6 +135,15 @@ const appReducer = (state, action) => {
         video: {
           ...state.video,
           scale: action.payload,
+        },
+      };
+      
+    case ActionTypes.SET_CROP_BOUNDS:
+      return {
+        ...state,
+        video: {
+          ...state.video,
+          cropBounds: action.payload,
         },
       };
       
@@ -335,6 +346,10 @@ export const AppProvider = ({ children }) => {
     
     setVideoScale: useCallback((scale) => {
       dispatch({ type: ActionTypes.SET_VIDEO_SCALE, payload: scale });
+    }, []),
+    
+    setCropBounds: useCallback((bounds) => {
+      dispatch({ type: ActionTypes.SET_CROP_BOUNDS, payload: bounds });
     }, []),
     
     // Annotation actions

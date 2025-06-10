@@ -10,7 +10,7 @@
  * @param {number} containerHeight - Container height
  * @returns {number} Scale factor
  */
-export const calculateScaleFactor = (videoWidth, videoHeight, containerWidth, containerHeight) => {
+export const calculateScaleFactor = (videoWidth, videoHeight, containerWidth, containerHeight, mode = 'fit') => {
   if (!videoWidth || !videoHeight || !containerWidth || !containerHeight) {
     return 1;
   }
@@ -18,7 +18,18 @@ export const calculateScaleFactor = (videoWidth, videoHeight, containerWidth, co
   const widthScale = containerWidth / videoWidth;
   const heightScale = containerHeight / videoHeight;
   
-  return Math.min(widthScale, heightScale);
+  // 'fit' mode: maintain aspect ratio and fit within container
+  // 'fill' mode: maintain aspect ratio and fill container (may crop)
+  // 'stretch': ignore aspect ratio and fill container exactly
+  switch(mode) {
+    case 'fill':
+      return Math.max(widthScale, heightScale);
+    case 'stretch':
+      return { width: widthScale, height: heightScale };
+    case 'fit':
+    default:
+      return Math.min(widthScale, heightScale);
+  }
 };
 
 /**

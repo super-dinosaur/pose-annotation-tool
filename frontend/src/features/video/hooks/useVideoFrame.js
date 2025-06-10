@@ -7,6 +7,7 @@ import {
   extractFrameFromVideo,
   calculateTotalFrames,
 } from "../services/videoService";
+import { detectBlackBorders } from "../../../utils/videoCrop";
 import { APP_CONSTANTS } from "../../../constants";
 import { useAppContext } from "../../../store";
 
@@ -128,9 +129,38 @@ export const useVideoFrame = () => {
 
       // Extract first frame
       try {
-        const frameImage = await extractFrameFromVideo(videoElement, 0, info.frameRate);
+        // Always use auto-crop to detect black borders
+        const frameImage = await extractFrameFromVideo(videoElement, 0, info.frameRate, 'auto');
         console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] First frame extracted`);
         actions.setFrameImage(frameImage);
+        
+        // Detect black borders for the video
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = videoElement.videoWidth;
+        tempCanvas.height = videoElement.videoHeight;
+        tempCtx.drawImage(videoElement, 0, 0);
+        
+        const detected = detectBlackBorders(tempCanvas);
+        const widthReduction = (tempCanvas.width - detected.width) / tempCanvas.width;
+        const heightReduction = (tempCanvas.height - detected.height) / tempCanvas.height;
+        
+        if (widthReduction > 0.05 || heightReduction > 0.05) {
+          console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] Black borders detected:`, detected);
+          // Update video info with cropped dimensions
+          const croppedInfo = {
+            ...info,
+            width: detected.width,
+            height: detected.height,
+            originalWidth: info.width,
+            originalHeight: info.height
+          };
+          actions.setVideoInfo(croppedInfo, totalFrames);
+          actions.setCropBounds(detected);
+        } else {
+          console.log(`[useVideoFrame-${instanceId.current.toFixed(3)}] No significant black borders detected`);
+          actions.setCropBounds(null);
+        }
       } catch (error) {
         console.error(`[useVideoFrame-${instanceId.current.toFixed(3)}] Frame extraction failed:`, error);
       }
@@ -159,7 +189,7 @@ export const useVideoFrame = () => {
       videoElement.removeEventListener('error', handleError);
       cleanup();
     };
-  }, [videoState?.src]); // 移除actions依赖，避免无限循环
+  }, [videoState?.src]); // Only depend on src change
 
   // Extract frame when current frame changes
   useEffect(() => {
@@ -172,7 +202,7 @@ export const useVideoFrame = () => {
       return;
     }
 
-    extractFrameFromVideo(videoRef.current, currentFrame, frameRate)
+    extractFrameFromVideo(videoRef.current, currentFrame, frameRate, videoState?.cropBounds)
       .then((image) => {
         actions.setFrameImage(image);
       })
@@ -182,7 +212,8 @@ export const useVideoFrame = () => {
   }, [
     videoState?.currentFrame, 
     videoState?.totalFrames,
-    videoState?.info?.frameRate
+    videoState?.info?.frameRate,
+    videoState?.cropBounds
   ]);
 
   // Navigation functions
