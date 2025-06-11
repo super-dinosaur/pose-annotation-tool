@@ -5,10 +5,10 @@
 /**
  * Detect black borders in a video frame
  * @param {HTMLCanvasElement} canvas - Canvas containing the video frame
- * @param {number} threshold - Darkness threshold (0-255, default 10)
+ * @param {number} threshold - Darkness threshold (0-255, default 20)
  * @returns {Object} Crop bounds { x, y, width, height }
  */
-export const detectBlackBorders = (canvas, threshold = 10) => {
+export const detectBlackBorders = (canvas, threshold = 20) => {
   const ctx = canvas.getContext('2d');
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
@@ -23,47 +23,72 @@ export const detectBlackBorders = (canvas, threshold = 10) => {
            data[idx + 2] <= threshold;
   };
 
-  // Find top border
+  // Find top border - scan multiple rows to be sure
   let topBorder = 0;
   outer: for (let y = 0; y < height; y++) {
-    for (let x = Math.floor(width * 0.1); x < Math.floor(width * 0.9); x += 10) {
-      if (!isBlack(x, y)) {
-        topBorder = y;
-        break outer;
+    let blackCount = 0;
+    const samplePoints = 20;
+    for (let i = 0; i < samplePoints; i++) {
+      const x = Math.floor((width * i) / samplePoints);
+      if (isBlack(x, y)) {
+        blackCount++;
       }
+    }
+    // If less than 90% of sampled points are black, we found content
+    if (blackCount < samplePoints * 0.9) {
+      topBorder = y;
+      break outer;
     }
   }
 
   // Find bottom border
   let bottomBorder = height - 1;
   outer: for (let y = height - 1; y >= 0; y--) {
-    for (let x = Math.floor(width * 0.1); x < Math.floor(width * 0.9); x += 10) {
-      if (!isBlack(x, y)) {
-        bottomBorder = y;
-        break outer;
+    let blackCount = 0;
+    const samplePoints = 20;
+    for (let i = 0; i < samplePoints; i++) {
+      const x = Math.floor((width * i) / samplePoints);
+      if (isBlack(x, y)) {
+        blackCount++;
       }
+    }
+    if (blackCount < samplePoints * 0.9) {
+      bottomBorder = y;
+      break outer;
     }
   }
 
   // Find left border
   let leftBorder = 0;
   outer: for (let x = 0; x < width; x++) {
-    for (let y = Math.floor(height * 0.1); y < Math.floor(height * 0.9); y += 10) {
-      if (!isBlack(x, y)) {
-        leftBorder = x;
-        break outer;
+    let blackCount = 0;
+    const samplePoints = 20;
+    for (let i = 0; i < samplePoints; i++) {
+      const y = Math.floor((height * i) / samplePoints);
+      if (isBlack(x, y)) {
+        blackCount++;
       }
+    }
+    if (blackCount < samplePoints * 0.9) {
+      leftBorder = x;
+      break outer;
     }
   }
 
   // Find right border
   let rightBorder = width - 1;
   outer: for (let x = width - 1; x >= 0; x--) {
-    for (let y = Math.floor(height * 0.1); y < Math.floor(height * 0.9); y += 10) {
-      if (!isBlack(x, y)) {
-        rightBorder = x;
-        break outer;
+    let blackCount = 0;
+    const samplePoints = 20;
+    for (let i = 0; i < samplePoints; i++) {
+      const y = Math.floor((height * i) / samplePoints);
+      if (isBlack(x, y)) {
+        blackCount++;
       }
+    }
+    if (blackCount < samplePoints * 0.9) {
+      rightBorder = x;
+      break outer;
     }
   }
 

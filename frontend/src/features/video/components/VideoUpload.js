@@ -16,16 +16,15 @@ import "./VideoUpload.css";
  * @returns {JSX.Element}
  */
 export const VideoUpload = ({ onVideoUpload, disabled = false }) => {
-  
   const handleFileSelect = useCallback(
     (file) => {
       console.log("====== 视频上传流程开始 ======");
       console.log("1. 文件信息:", {
         name: file.name,
         type: file.type,
-        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
       });
-      
+
       // 验证文件
       const isValid = validateVideoFile(file);
       console.log("2. 文件验证结果:", isValid);
@@ -76,12 +75,12 @@ export const VideoUpload = ({ onVideoUpload, disabled = false }) => {
   };
 
   return (
-    <Upload {...uploadProps} style={{ display: 'inline-block' }} className="video-upload-wrapper">
-      <Button
-        icon={<UploadOutlined />}
-        type="primary"
-        disabled={disabled}
-      >
+    <Upload
+      {...uploadProps}
+      style={{ display: "inline-block" }}
+      className="video-upload-wrapper"
+    >
+      <Button icon={<UploadOutlined />} type="primary" disabled={disabled}>
         Upload Video
       </Button>
     </Upload>

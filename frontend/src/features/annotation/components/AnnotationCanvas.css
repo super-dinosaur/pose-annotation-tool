@@ -6,13 +6,13 @@
   width: 100%;
   height: 100%;
   position: relative;
-  background-color: #000; /* Black background for video */
+  background-color: #f0f0f0; /* 改为浅灰色，方便看到视频边界 */
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden; /* Prevent scrollbars */
-  padding: 0; /* Remove any padding */
-  margin: 0; /* Remove any margin */
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
 }
 
 .annotation-stage {
