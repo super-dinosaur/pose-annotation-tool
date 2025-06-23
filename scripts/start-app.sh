@@ -23,5 +23,5 @@ echo "3. 视频文件是否损坏"
 echo ""
 echo "======================================"
 
-cd /Users/franky/Documents/code/labelme-full-stack/frontend
+cd /home/ghy/Desktop/pose-annotation-tool/frontend
 npm start
