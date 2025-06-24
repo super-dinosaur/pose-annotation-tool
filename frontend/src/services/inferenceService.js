@@ -2,7 +2,29 @@
  * API service for inference operations
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5002";
+
+export const runUnderlyingInference = async (
+  videoPath,
+  frameNumber,
+) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/UnderlyingInference`{
+      method: "POST",
+      headers:{
+          "Content-Type":"application/json",
+        }, 
+        body: JSON.stringify({
+          videoPath,
+          frameNumber
+        }),
+    });
+  } catch(error) {
+    console.error("error:",error);
+    throw error;
+  }
+
+  }
 
 /**
  * Run inference on the current frame

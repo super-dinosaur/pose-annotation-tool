@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
-const PORT = 5000;
+const PORT = 5002;
 
 // Middleware
 app.use(cors());
@@ -15,6 +15,60 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "Backend is running" });
+});
+
+app.post("/api/UnderlyingInference", async (req,res) => {
+    try {
+        const {videoPath, frameNumber} = req.body;
+        console.log("Received UnderlyingInference request:", {
+            videoPath, frameNumber
+        });
+        if (!videoPath || frameNumber === undefined) {
+            return res.status(400).json({
+                error:"Missing required parameters: videoPath, frameNumber",
+            });
+        }  
+
+        //path to python script
+        const pythonScriptPath = path.join(
+            __dirname,
+            "scripts",
+            "RealInference.py",
+        );
+
+        //Prepare arguments for RealInference.py
+        const args = [
+            pythonScriptPath,
+            "--video",
+            videoPath,
+            "--frame",
+            frameNumber.toString(),
+        ];
+
+        // Spawn Python process
+        const pythonProcess = spawn("python3",args);
+
+        let outputData = "";
+        let errorData = "";
+
+        // Collect output
+        // data is a buffer containing a chunk of output from inference.py.
+        pythonProcess.stdout.on("data", (data) => {
+          outputData += data.toString();
+          console.log("Python output:", data.toString());
+        });
+
+        pythonProcess.stderr.on("data", (data) => {
+          errorData += data.toString();
+          console.error("Python error:", data.toString());
+        });
+    } catch (error) {
+        console.error("RealInference error:",error);
+        res.status(500).json({
+            error: "Internal server error",
+            details: error.message,
+        });
+    }
 });
 
 // Inference endpoint
@@ -78,6 +132,7 @@ app.post("/api/inference", async (req, res) => {
     let errorData = "";
 
     // Collect output
+    // data is a buffer containing a chunk of output from inference.py.
     pythonProcess.stdout.on("data", (data) => {
       outputData += data.toString();
       console.log("Python output:", data.toString());
@@ -92,9 +147,11 @@ app.post("/api/inference", async (req, res) => {
     pythonProcess.on("close", (code) => {
       // Clean up temp file
       if (tempAnnotationsPath && fs.existsSync(tempAnnotationsPath)) {
+        //delete file located in tempAnnotationsPath.
         fs.unlinkSync(tempAnnotationsPath);
       }
 
+      // both numerical and type
       if (code !== 0) {
         console.error(`Python process exited with code ${code}`);
         return res.status(500).json({

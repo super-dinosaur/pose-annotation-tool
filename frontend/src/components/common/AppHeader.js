@@ -2,7 +2,7 @@
  * Application header with toolbar
  */
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button, message, Typography, Popover, Slider, Switch } from "antd";
 import {
   SaveOutlined,
@@ -27,6 +27,7 @@ const { Text } = Typography;
 export const AppHeader = () => {
   const { state, actions } = useAppContext();
   const { video, annotation, ui } = state;
+  const { startRealInference, setstartRealInference } = useState(false)
 
   const handleVideoUpload = useCallback(
     (videoSrc, videoName) => {
@@ -107,11 +108,20 @@ export const AppHeader = () => {
         video.currentFrame,
         annotation.annotations,
       );
+      console.log(video.src,video.currentFrame,annotation.annotations);
 
       console.log("Inference result:", result);
 
       // Process the inference results
       if (result.predictions && result.predictions.length > 0) {
+
+        const frame_key = `frame_${video.currentFrame}`;
+        const newAnnotations = {};
+
+        const existingPersonId = annotation.persons.map(p=>p.id);
+        actions.setAnnotations(
+          annotations=result
+        )
         // TODO: Add logic to update annotations with inference results
         // For example:
         // actions.updateAnnotationsFromInference(result.predictions);

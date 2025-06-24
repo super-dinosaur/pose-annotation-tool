@@ -1,9 +1,3 @@
-### Features
+### Progress
+developing handleInference function
 
-### Project Structure 
-
-### Dependecies
-
-### Installation
-
-### 

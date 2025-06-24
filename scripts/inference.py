@@ -38,7 +38,7 @@ def run_inference(video_path, frame_number, annotations_path=None):
         "frame": frame_number,
         "predictions": [
             {
-                "person_id": "person_1",
+                "person_id": "left",
                 "keypoints": {
                     "nose": {"x": 320, "y": 240, "confidence": 0.95},
                     "left_eye": {"x": 310, "y": 230, "confidence": 0.92},
@@ -47,6 +47,17 @@ def run_inference(video_path, frame_number, annotations_path=None):
                 },
                 "bbox": [300, 200, 40, 80],  # x, y, width, height
                 "confidence": 0.89
+            },
+            {
+                "person_id": "right",
+                 "keypoints": {
+                    "nose": {"x": 420, "y": 340, "confidence": 0.95},
+                    "left_eye": {"x": 410, "y": 330, "confidence": 0.92},
+                    "right_eye": {"x": 430, "y": 330, "confidence": 0.93},
+                    # Add more keypoints as needed
+                },
+                "bbox": [300, 200, 40, 80],  # x, y, width, height
+                "confidence": 0.90
             }
         ],
         "processing_time_ms": 150

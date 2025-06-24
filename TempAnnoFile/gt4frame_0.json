@@ -1,0 +1,57 @@
+{
+    "frame": 0,
+    "predictions": [
+        {
+            "person_id": 0,
+            "keypoints": {
+                "nose": {
+                    "x": 420,
+                    "y": 340,
+                    "confidence": 0.95
+                },
+                "left_eye": {
+                    "x": 410,
+                    "y": 330,
+                    "confidence": 0.92
+                },
+                "right_eye": {
+                    "x": 430,
+                    "y": 330,
+                    "confidence": 0.93
+                }
+            },
+            "bbox": [
+                440,
+                220,
+                20,
+                10
+            ]
+        },
+        {
+            "person_id": 1,
+            "keypoints": {
+                "nose": {
+                    "x": 420,
+                    "y": 340,
+                    "confidence": 0.95
+                },
+                "left_eye": {
+                    "x": 410,
+                    "y": 330,
+                    "confidence": 0.92
+                },
+                "right_eye": {
+                    "x": 430,
+                    "y": 330,
+                    "confidence": 0.93
+                }
+            },
+            "bbox": [
+                440,
+                220,
+                20,
+                10
+            ]
+        }
+    ]
+}
