@@ -3,22 +3,48 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, message, Typography, Popover, Slider, Switch } from "antd";
+import { Button, message, Typography } from "antd";
 import {
   SaveOutlined,
   PlusOutlined,
   PlayCircleOutlined,
+  StopOutlined,
 } from "@ant-design/icons";
 import { VideoUpload } from "../../features/video";
 import { useAppContext } from "../../store";
 import { exportAnnotationsToJson } from "../../utils/export";
 import {
-  runInference,
   checkBackendHealth,
+  startInference,
+  getNextInferenceResult,
+  saveAndContinue,
+  stopInference,
 } from "../../services/inferenceService";
+import { KEYPOINTS, PERSON_COLORS } from "../../constants";
 import "./AppHeader.css";
 
 const { Text } = Typography;
+
+// Keypoint name mapping from inference output to frontend IDs
+const INFERENCE_TO_KEYPOINT_ID = {
+  'nose': 0,
+  'left_eye': 1,
+  'right_eye': 2,
+  'left_ear': 3,
+  'right_ear': 4,
+  'left_shoulder': 5,
+  'right_shoulder': 6,
+  'left_elbow': 7,
+  'right_elbow': 8,
+  'left_wrist': 9,
+  'right_wrist': 10,
+  'left_hip': 11,
+  'right_hip': 12,
+  'left_knee': 13,
+  'right_knee': 14,
+  'left_ankle': 15,
+  'right_ankle': 16
+};
 
 /**
  * AppHeader component
@@ -27,8 +53,13 @@ const { Text } = Typography;
 export const AppHeader = () => {
   const { state, actions } = useAppContext();
   const { video, annotation, ui } = state;
-  const { startRealInference, setstartRealInference } = useState(false)
+  
+  // Inference state
+  const [inferenceRunning, setInferenceRunning] = useState(false);
+  const [waitingForNext, setWaitingForNext] = useState(false);
+  const [currentInferenceFrame, setCurrentInferenceFrame] = useState(null);
 
+  // Handle video upload
   const handleVideoUpload = useCallback(
     (videoSrc, videoName) => {
       console.log("====== AppHeader 处理视频上传 ======");
@@ -41,6 +72,11 @@ export const AppHeader = () => {
       }
 
       try {
+        // Stop any running inference
+        if (inferenceRunning) {
+          handleStopInference();
+        }
+        
         // 清除之前的标注
         console.log("2. 重置标注");
         actions.resetAnnotations();
@@ -56,9 +92,10 @@ export const AppHeader = () => {
         message.error("处理视频上传失败");
       }
     },
-    [actions],
+    [actions, inferenceRunning],
   );
 
+  // Save all annotations
   const handleSaveAnnotations = useCallback(() => {
     if (
       !annotation.annotations ||
@@ -78,67 +115,159 @@ export const AppHeader = () => {
     message.success("标注保存成功");
   }, [annotation.annotations, annotation.persons, video.info, video.name]);
 
+  // Add person
   const handleAddPerson = useCallback(() => {
     actions.setAddPersonModal(true);
   }, [actions]);
 
-  const handleInference = useCallback(async () => {
+  // Main inference handler - handles both start and continue
+  const handleInferenceNextFrame = useCallback(async () => {
     if (!video.src) {
       message.error("请先加载视频");
       return;
     }
 
     try {
-      // Set loading state
-      actions.setInferencing(true);
+      // First time - start the inference process
+      if (!inferenceRunning) {
+        // Check backend health
+        const isBackendHealthy = await checkBackendHealth();
+        if (!isBackendHealthy) {
+          throw new Error(
+            "Backend server is not running. Please start the backend server.",
+          );
+        }
 
-      // Check if backend is running
-      const isBackendHealthy = await checkBackendHealth();
-      if (!isBackendHealthy) {
-        throw new Error(
-          "Backend server is not running. Please start the backend server.",
-        );
+        message.info("启动推理...");
+        
+        // Start inference with video name (or path)
+        await startInference(video.name);
+        setInferenceRunning(true);
+        setWaitingForNext(true);
+        
+        // Get first frame result
+        const result = await getNextInferenceResult();
+        handleInferenceResult(result);
+        
+      } else if (currentInferenceFrame !== null && !waitingForNext) {
+        // Continue to next frame - save current annotations first
+        message.info("保存当前帧标注并继续...");
+        
+        const frameKey = `frame_${currentInferenceFrame}`;
+        const frameAnnotations = annotation.annotations[frameKey] || {};
+        
+        // Save current frame annotations as fin_frame_N.json
+        await saveAndContinue(currentInferenceFrame, {
+          frame: currentInferenceFrame,
+          annotations: frameAnnotations,
+          persons: annotation.persons,
+          timestamp: new Date().toISOString()
+        });
+        
+        setWaitingForNext(true);
+        
+        // Get next frame result
+        const result = await getNextInferenceResult();
+        handleInferenceResult(result);
       }
-
-      message.info("开始推理...");
-      console.log(video.src);
-      // Run inference
-      const result = await runInference(
-        video.src, // This might need to be a file path instead of blob URL
-        video.currentFrame,
-        annotation.annotations,
-      );
-      console.log(video.src,video.currentFrame,annotation.annotations);
-
-      console.log("Inference result:", result);
-
-      // Process the inference results
-      if (result.predictions && result.predictions.length > 0) {
-
-        const frame_key = `frame_${video.currentFrame}`;
-        const newAnnotations = {};
-
-        const existingPersonId = annotation.persons.map(p=>p.id);
-        actions.setAnnotations(
-          annotations=result
-        )
-        // TODO: Add logic to update annotations with inference results
-        // For example:
-        // actions.updateAnnotationsFromInference(result.predictions);
-
-        message.success(`推理完成！检测到 ${result.predictions.length} 个人`);
-      } else {
-        message.warning("推理完成，但未检测到任何人");
-      }
+      
     } catch (error) {
       console.error("Inference error:", error);
       message.error(`推理失败: ${error.message}`);
-    } finally {
-      // Clear loading state
-      actions.setInferencing(false);
+      setWaitingForNext(false);
     }
-  }, [video.src, video.currentFrame, annotation.annotations, actions]);
+  }, [video.src, video.name, inferenceRunning, currentInferenceFrame, waitingForNext, annotation]);
 
+  // Process inference result and display on canvas
+  const handleInferenceResult = useCallback((result) => {
+    console.log("Received inference result:", result);
+    
+    // Check if inference is completed
+    if (result.status === "completed") {
+      message.info("所有帧处理完成！");
+      handleStopInference();
+      return;
+    }
+    
+    // Check for errors
+    if (result.status === "error") {
+      message.error(`推理错误: ${result.error}`);
+      setWaitingForNext(false);
+      return;
+    }
+
+    const { frame, predictions } = result;
+    setCurrentInferenceFrame(frame);
+    setWaitingForNext(false);
+    
+    if (!predictions || predictions.length === 0) {
+      message.warning(`第 ${frame} 帧未检测到任何人`);
+      return;
+    }
+
+    // Clear existing annotations for this frame (optional)
+    // const frameKey = `frame_${frame}`;
+    // You might want to keep existing manual annotations
+    
+    // Process each detected person
+    predictions.forEach((prediction, index) => {
+      // Handle person ID
+      let personId = prediction.person_id || `person_${index}`;
+      let person = annotation.persons.find(p => p.id === personId);
+      
+      if (!person) {
+        // Create new person
+        const colorIndex = annotation.persons.length % PERSON_COLORS.length;
+        const personName = personId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        person = actions.addPerson(personName, PERSON_COLORS[colorIndex]);
+        personId = person.id;
+      }
+      
+      // Add keypoints
+      Object.entries(prediction.keypoints).forEach(([keypointName, data]) => {
+        const keypointId = INFERENCE_TO_KEYPOINT_ID[keypointName];
+        
+        if (keypointId !== undefined && data.confidence > 0.5) {
+          actions.addAnnotation(
+            frame,
+            person.id,
+            keypointId,
+            { x: Math.round(data.x), y: Math.round(data.y) }
+          );
+        }
+      });
+    });
+    
+    // Navigate to this frame
+    actions.setCurrentFrame(frame);
+    
+    message.success(`第 ${frame} 帧推理完成，检测到 ${predictions.length} 个人`);
+  }, [annotation.persons, actions]);
+
+  // Stop inference
+  const handleStopInference = useCallback(async () => {
+    try {
+      await stopInference();
+      setInferenceRunning(false);
+      setWaitingForNext(false);
+      setCurrentInferenceFrame(null);
+      message.success("推理已停止");
+    } catch (error) {
+      console.error("Stop inference error:", error);
+      message.error("停止推理失败");
+    }
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (inferenceRunning) {
+        stopInference().catch(console.error);
+      }
+    };
+  }, [inferenceRunning]);
+
+  // UI state
   const hasAnnotations =
     annotation.annotations && Object.keys(annotation.annotations).length > 0;
   const hasVideo = Boolean(video.src);
@@ -175,13 +304,27 @@ export const AppHeader = () => {
 
           <Button
             icon={<PlayCircleOutlined />}
-            onClick={handleInference}
-            disabled={!hasVideo || ui.isInferencing}
-            loading={ui.isInferencing}
+            onClick={handleInferenceNextFrame}
+            disabled={!hasVideo || waitingForNext}
+            loading={waitingForNext}
             type="primary"
           >
-            {ui.isInferencing ? "Inferencing..." : "Inference Next Frame"}
+            {!inferenceRunning 
+              ? "Start Inference" 
+              : waitingForNext
+                ? "Processing..."
+                : "Inference Next Frame"}
           </Button>
+
+          {inferenceRunning && (
+            <Button
+              icon={<StopOutlined />}
+              onClick={handleStopInference}
+              danger
+            >
+              Stop Inference
+            </Button>
+          )}
         </div>
       </div>
 
@@ -199,6 +342,11 @@ export const AppHeader = () => {
                     (p) => p.id === annotation.selectedPersonId,
                   )?.name
                 }
+              </Text>
+            )}
+            {inferenceRunning && currentInferenceFrame !== null && (
+              <Text type="warning" className="header-info-item">
+                Inference Frame: {currentInferenceFrame + 1}
               </Text>
             )}
           </div>

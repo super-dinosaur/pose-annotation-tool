@@ -78,7 +78,8 @@ def main():
         result = run_inference(args.video, args.frame, args.annotations)
         
         # Output result as JSON to stdout
-        print(json.dumps(result))
+        # print(json.dumps(result))
+        print("yes, original inference.py is printing")
         
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
