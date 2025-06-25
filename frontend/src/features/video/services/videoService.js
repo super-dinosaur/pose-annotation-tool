@@ -297,3 +297,30 @@ export const cleanupVideoUrl = (url) => {
     console.log("Cleaned up video URL:", url);
   }
 };
+
+/**
+ * 将视频文件上传到服务器
+ * @param {File} file - 视频文件
+ * @returns {Promise<string>} 返回服务器上视频的路径
+ */
+export const uploadVideoToServer = async (file) => {
+  const formData = new FormData();
+  formData.append("video", file);
+
+  try {
+    const response = await fetch("http://localhost:5000/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("上传失败");
+    }
+
+    const result = await response.json();
+    return result.filePath; // 假设服务器返回 { filePath: "/uploads/xxx.mp4" }
+  } catch (error) {
+    console.error("上传到服务器失败:", error);
+    return null;
+  }
+};

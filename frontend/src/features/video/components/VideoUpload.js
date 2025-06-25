@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect } from "react";
 import { Upload, Button, message } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
-import { validateVideoFile, createVideoUrl } from "../services/videoService";
+import { validateVideoFile, createVideoUrl, uploadVideoToServer } from "../services/videoService";
 import "./VideoUpload.css";
 
 /**
@@ -17,7 +17,7 @@ import "./VideoUpload.css";
  */
 export const VideoUpload = ({ onVideoUpload, disabled = false }) => {
   const handleFileSelect = useCallback(
-    (file) => {
+    async (file) => {
       console.log("====== 视频上传流程开始 ======");
       console.log("1. 文件信息:", {
         name: file.name,
@@ -56,9 +56,28 @@ export const VideoUpload = ({ onVideoUpload, disabled = false }) => {
         }
 
         message.success(`${file.name} 加载成功`);
+
       } catch (error) {
         console.error("处理视频时出错:", error);
         message.error("处理视频文件失败");
+      }
+
+      //新增：上传到服务器
+      let serverPath = null;
+      try {
+        // 添加 await 关键字等待异步函数完成
+        serverPath = await uploadVideoToServer(file);
+        
+        if (serverPath) {
+          message.success(`视频已上传到"${serverPath}"位置`);
+        } else {
+          message.error("上传失败，请重试");
+          return false;
+        }
+      } catch (err) {
+        message.error("无法上传到服务器，请重试");
+        console.error("上传错误:", err);
+        return false;
       }
 
       return false; // 阻止默认上传行为

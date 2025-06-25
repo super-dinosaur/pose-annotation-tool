@@ -61,9 +61,9 @@ export const AppHeader = () => {
 
   // Handle video upload
   const handleVideoUpload = useCallback(
-    (videoSrc, videoName) => {
+    (videoSrc, videoName, serverPath) => {
       console.log("====== AppHeader 处理视频上传 ======");
-      console.log("1. 接收到的参数:", { videoSrc, videoName });
+      console.log("1. 接收到的参数:", { videoSrc, videoName, serverPath });
 
       if (!videoSrc) {
         console.error("错误: 没有视频源");
@@ -83,10 +83,11 @@ export const AppHeader = () => {
 
         // 设置视频源
         console.log("3. 调用 actions.setVideoSrc");
-        actions.setVideoSrc(videoSrc, videoName);
+        actions.setVideoSrc(videoSrc, videoName, serverPath);
 
         console.log("4. 视频上传处理完成");
-        message.success(`视频 "${videoName}" 加载成功`);
+        // message.success(`视频 "${videoName}" 加载成功`);
+        // message.success(`视频已上传到"${serverPath}"位置`);
       } catch (error) {
         console.error("处理视频上传时出错:", error);
         message.error("处理视频上传失败");
